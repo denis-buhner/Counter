@@ -1,35 +1,50 @@
 using System.Collections;
 using UnityEngine;
 
-[RequireComponent(typeof(InputManager))]
+[RequireComponent(typeof(InputController))]
 public class Counter : MonoBehaviour
 {
     [SerializeField] private float _delay = 0.5f;
-    [SerializeField] private InputManager _inputManager;
+    [SerializeField] private InputController _inputController;
+
     private Coroutine _countCoroutine;
     private int _currentCount = 0;
 
+    private void Awake()
+    {
+        if (_inputController == null)
+            _inputController = GetComponent<InputController>();
+    }
+
     private void OnEnable()
     {
-        _inputManager = GetComponent<InputManager>();
-
-        if (_inputManager != null)
-            _inputManager._OnInputEntered += SwitchCountingState;
+        if (_inputController != null)
+        {
+            _inputController.InputEntered += StartCounting;
+            _inputController.InputEntered += StopCounting;
+        }
     }
 
     private void OnDisable()
     {
-        if (_inputManager != null)
-            _inputManager._OnInputEntered -= SwitchCountingState;
+        if (_inputController != null)
+        {
+            _inputController.InputEntered -= StartCounting;
+            _inputController.InputEntered -= StopCounting;
+        }
     }
 
-    private void SwitchCountingState()
+    private void StartCounting()
     {
-        if(_countCoroutine == null)
+        if (_countCoroutine == null)
         {
             _countCoroutine = StartCoroutine(CountCoroutine());
         }
-        else
+    }
+
+    private void StopCounting()
+    {
+        if ( _countCoroutine != null)
         {
             StopCoroutine(_countCoroutine);
             _countCoroutine = null;
