@@ -1,27 +1,30 @@
+using System;
 using System.Collections;
 using UnityEngine;
 
-[RequireComponent(typeof(InputController))]
+[RequireComponent(typeof(InputReader))]
 public class Counter : MonoBehaviour
 {
-    [SerializeField] private float _delay = 0.5f;
-    [SerializeField] private InputController _inputController;
+    [SerializeField][Min(0)] private float _delay = 0.5f;
+    [SerializeField] private InputReader _inputController;
 
+    public event Action CounterUpdated;
     private Coroutine _countCoroutine;
-    private int _currentCount = 0;
+    private bool _isCounting;
+
+    public int CurrentCount { get; private set; } = 0;
 
     private void Awake()
     {
         if (_inputController == null)
-            _inputController = GetComponent<InputController>();
+            _inputController = GetComponent<InputReader>();
     }
 
     private void OnEnable()
     {
         if (_inputController != null)
         {
-            _inputController.InputEntered += StartCounting;
-            _inputController.InputEntered += StopCounting;
+            _inputController.InputEntered += ToggleCounting;
         }
     }
 
@@ -29,36 +32,44 @@ public class Counter : MonoBehaviour
     {
         if (_inputController != null)
         {
-            _inputController.InputEntered -= StartCounting;
-            _inputController.InputEntered -= StopCounting;
+            _inputController.InputEntered -= ToggleCounting;
         }
     }
 
-    private void StartCounting()
+    private void ToggleCounting()
     {
-        if (_countCoroutine == null)
+        if (_isCounting)
         {
-            _countCoroutine = StartCoroutine(CountCoroutine());
-        }
-    }
 
-    private void StopCounting()
-    {
-        if ( _countCoroutine != null)
+            if (_countCoroutine != null)
+            {
+                StopCoroutine(_countCoroutine);
+                _countCoroutine = null;
+            }
+
+            _isCounting = false;
+        }
+        else
         {
-            StopCoroutine(_countCoroutine);
-            _countCoroutine = null;
+            _isCounting = true;
+
+            if (_countCoroutine == null)
+            {
+                _countCoroutine = StartCoroutine(CountCoroutine());
+            }
         }
     }
 
     private IEnumerator CountCoroutine()
     {
-        while (enabled)
-        {
-            _currentCount++;
-            Debug.Log($"текущее число {_currentCount}");
+        WaitForSeconds delay = new WaitForSeconds(_delay);
 
-            yield return new WaitForSeconds(_delay);
+        while (_isCounting)
+        {
+            CurrentCount++;
+            CounterUpdated?.Invoke();
+
+            yield return delay;
         }
     }
 }
